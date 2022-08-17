@@ -101,13 +101,13 @@
         <p>This library is currently available for Scala binary versions 2.13 and 3.1.</p>
         <p>To use the latest version, include the following in your <code>build.sbt</code>:</p>
         <pre class="keep-together pdf epub"><code class="nohighlight"><span class="identifier">libraryDependencies</span><span> ++= </span><span class="type-name">Seq</span><span>(
-  </span><span class="string-literal">&quot;io.pig&quot;</span><span> %% </span><span class="string-literal">&quot;textmogrify&quot;</span><span> % </span><span class="string-literal">&quot;0.0-5c5ebe2-SNAPSHOT&quot;</span><span>
+  </span><span class="string-literal">&quot;io.pig&quot;</span><span> %% </span><span class="string-literal">&quot;textmogrify&quot;</span><span> % </span><span class="string-literal">&quot;0.0-2ddc96b-SNAPSHOT&quot;</span><span>
 )</span></code></pre>
         
         <h2 id="lucene" class="section">Lucene<a class="anchor-link right" href="#lucene"><i class="icofont-laika">&#xef71;</i></a></h2>
         <p>Currently the core functionality of textmogrify is implemented with <a href="https://lucene.apache.org/">Lucene</a> via the Lucene module.</p>
         <pre class="keep-together pdf epub"><code class="nohighlight"><span class="identifier">libraryDependencies</span><span> ++= </span><span class="type-name">Seq</span><span>(
-  </span><span class="string-literal">&quot;io.pig&quot;</span><span> %% </span><span class="string-literal">&quot;textmogrify-lucene&quot;</span><span> % </span><span class="string-literal">&quot;0.0-5c5ebe2-SNAPSHOT&quot;</span><span>
+  </span><span class="string-literal">&quot;io.pig&quot;</span><span> %% </span><span class="string-literal">&quot;textmogrify-lucene&quot;</span><span> % </span><span class="string-literal">&quot;0.0-2ddc96b-SNAPSHOT&quot;</span><span>
 )</span></code></pre>
         <p>The Lucene module lets you use a Lucene <a href="https://lucene.apache.org/core/9_3_0/core/org/apache/lucene/analysis/Analyzer.html">Analyzer</a> to modify text, additionally it provides helpers to use <code>Analyzer</code>s with an fs2 <a href="https://www.javadoc.io/doc/co.fs2/fs2-docs_2.13/latest/fs2/Stream.html">Stream</a>.</p>
         
