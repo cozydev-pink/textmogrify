@@ -59,24 +59,22 @@ object Config {
   */
 sealed abstract class AnalyzerBuilder private[lucene] (config: Config) {
 
-  type Builder <: AnalyzerBuilder
-
-  def withConfig(config: Config): Builder
+  def withConfig(config: Config): AnalyzerBuilder
 
   /** Adds a lowercasing stage to the analyzer pipeline */
-  def withLowerCasing: Builder =
+  def withLowerCasing: AnalyzerBuilder =
     withConfig(config.withLowerCasing)
 
   /** Adds an ASCII folding stage to the analyzer pipeline
     * ASCII folding converts alphanumeric and symbolic Unicode characters into
     * their ASCII equivalents, if one exists.
     */
-  def withASCIIFolding: Builder =
+  def withASCIIFolding: AnalyzerBuilder =
     withConfig(config.withASCIIFolding)
 
   /** Adds a stop filter stage to analyzer pipeline for non-empty sets.
     */
-  def withStopWords(words: Set[String]): Builder =
+  def withStopWords(words: Set[String]): AnalyzerBuilder =
     withConfig(config.withStopWords(words))
 
   /** Build the Analyzer wrapped inside a Resource.
@@ -126,8 +124,6 @@ final class EnglishAnalyzerBuilder private[lucene] (
     stemmer: Boolean,
 ) extends AnalyzerBuilder(config) { self =>
 
-  type Builder = EnglishAnalyzerBuilder
-
   private def copy(
       newConfig: Config,
       stemmer: Boolean = self.stemmer,
@@ -171,8 +167,6 @@ final class FrenchAnalyzerBuilder private[lucene] (
 
   def withConfig(newConfig: Config): FrenchAnalyzerBuilder =
     copy(newConfig = newConfig)
-
-  type Builder = FrenchAnalyzerBuilder
 
   /** Adds the FrenchLight Stemmer to the end of the analyzer pipeline and enables lowercasing.
     * Stemming reduces words like `jumping` and `jumps` to their root word `jump`.
