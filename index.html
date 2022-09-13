@@ -94,6 +94,7 @@
           <li class="level1"><a href="#usage">Usage</a></li>
           <li class="level1"><a href="#lucene">Lucene</a></li>
           <li class="level2"><a href="#basics">Basics</a></li>
+          <li class="level2"><a href="#languages">Languages</a></li>
           <li class="level2"><a href="#pipelines">Pipelines</a></li>
         </ul>
 
@@ -106,7 +107,7 @@
         <p>Textmogrify is a pre-alpha text manipulation library that hopefully works well with <a href="https://fs2.io">fs2</a>.</p>
         
         <h2 id="usage" class="section">Usage<a class="anchor-link right" href="#usage"><i class="icofont-laika">&#xef71;</i></a></h2>
-        <p>This library is currently available for Scala binary versions 2.13 and 3.1.</p>
+        <p>This library is currently available for Scala binary versions 2.13 and 3.2.</p>
         <p>To use the latest version, include the following in your <code>build.sbt</code>:</p>
         <pre class="keep-together pdf epub"><code class="nohighlight"><span class="identifier">libraryDependencies</span><span> ++= </span><span class="type-name">Seq</span><span>(
   </span><span class="string-literal">&quot;io.pig&quot;</span><span> %% </span><span class="string-literal">&quot;textmogrify&quot;</span><span> % </span><span class="string-literal">&quot;0.0.1&quot;</span><span>
@@ -120,7 +121,7 @@
         <p>The Lucene module lets you use a Lucene <a href="https://lucene.apache.org/core/9_3_0/core/org/apache/lucene/analysis/Analyzer.html">Analyzer</a> to modify text, additionally it provides helpers to use <code>Analyzer</code>s with an fs2 <a href="https://www.javadoc.io/doc/co.fs2/fs2-docs_2.13/latest/fs2/Stream.html">Stream</a>.</p>
         
         <h3 id="basics" class="section">Basics<a class="anchor-link right" href="#basics"><i class="icofont-laika">&#xef71;</i></a></h3>
-        <p>Typical usage is to use the <code>AnalyzerBuilder</code> to configure an <code>Analyzer</code> and call <code>.tokenizer</code> to get a <code>Resource[F, String =&gt; F[Vector[String]]]</code>:</p>
+        <p>Typical usage is to use the <code>AnalyzerBuilder</code> to configure an <code>Analyzer</code> and call <code>.tokenizer[F]</code> to get a <code>Resource[F, String =&gt; F[Vector[String]]]</code>:</p>
         <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">textmogrify</span><span>.</span><span class="identifier">lucene</span><span>.</span><span class="type-name">AnalyzerBuilder</span><span>
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="type-name">IO</span><span>
 
@@ -136,8 +137,19 @@
 </span><span class="comment">// res0: Vector[String] = Vector(&quot;i&quot;, &quot;like&quot;, &quot;jalapenos&quot;)</span></code></pre>
         <p>We can see that our text was lowercased and the unicode <code>ñ</code> replaced with an ASCII <code>n</code>.</p>
         
+        <h3 id="languages" class="section">Languages<a class="anchor-link right" href="#languages"><i class="icofont-laika">&#xef71;</i></a></h3>
+        <p>Textmogrify comes with support for multiple languages.
+        When setting up an <code>AnalyzerBuilder</code> you&#39;ll have access to language specific options once you call one of the helper language methods like <code>english</code> or <code>french</code>.
+        Specifying a language preserves the configuration set beforehand.</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">base</span><span> = </span><span class="type-name">AnalyzerBuilder</span><span>.</span><span class="keyword">default</span><span>.</span><span class="identifier">withLowerCasing</span><span>.</span><span class="identifier">withASCIIFolding</span><span>
+
+</span><span class="keyword">val</span><span> </span><span class="identifier">en</span><span> = </span><span class="identifier">base</span><span>.</span><span class="identifier">english</span><span>.</span><span class="identifier">withPorterStemmer</span><span>.</span><span class="identifier">tokenizer</span><span>[</span><span class="type-name">IO</span><span>]
+</span><span class="keyword">val</span><span> </span><span class="identifier">fr</span><span> = </span><span class="identifier">base</span><span>.</span><span class="identifier">french</span><span>.</span><span class="identifier">withFrenchLightStemmer</span><span>.</span><span class="identifier">tokenizer</span><span>[</span><span class="type-name">IO</span><span>]
+</span><span class="keyword">val</span><span> </span><span class="identifier">es</span><span> = </span><span class="identifier">base</span><span>.</span><span class="identifier">spanish</span><span>.</span><span class="identifier">withSpanishLightStemmer</span><span>.</span><span class="identifier">tokenizer</span><span>[</span><span class="type-name">IO</span><span>]</span></code></pre>
+        <p>All of <code>en</code>, <code>fr</code>, and <code>es</code> will both lowercase and asciifold their inputs in addition to using their language specific stemmers.</p>
+        
         <h3 id="pipelines" class="section">Pipelines<a class="anchor-link right" href="#pipelines"><i class="icofont-laika">&#xef71;</i></a></h3>
-        <p>Another common use is to construct a <code>Pipe</code>, or <code>Stream</code> to <code>Stream</code> function.
+        <p>Another common use is to construct a <code>Pipe</code>, or <code>Stream</code> to <code>Stream</code> function using an <code>Analyzer</code>.
         Let&#39;s say we have some messages we want to analyze and index as part of some search component.
         Given a raw <code>Msg</code> type and an analyzed <code>Doc</code> type, we want to transform a <code>Stream[F, Msg]</code> into a <code>Stream[F, Doc]</code>.</p>
         <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.</span><span class="type-name">Stream</span><span>
@@ -153,7 +165,7 @@
         <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.</span><span class="type-name">Pipe</span><span>
 
 </span><span class="keyword">val</span><span> </span><span class="identifier">normalizeMsgs</span><span>: </span><span class="type-name">Pipe</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Msg</span><span>, </span><span class="type-name">Doc</span><span>] = </span><span class="identifier">msgs</span><span> =&gt; {
-  </span><span class="keyword">val</span><span> </span><span class="identifier">tokenizer</span><span> = </span><span class="type-name">AnalyzerBuilder</span><span>.</span><span class="keyword">default</span><span>
+  </span><span class="keyword">val</span><span> </span><span class="identifier">tokenizer</span><span> = </span><span class="type-name">AnalyzerBuilder</span><span>.</span><span class="identifier">english</span><span>
     .</span><span class="identifier">withLowerCasing</span><span>
     .</span><span class="identifier">withStopWords</span><span>(</span><span class="type-name">Set</span><span>(</span><span class="string-literal">&quot;how&quot;</span><span>, </span><span class="string-literal">&quot;do&quot;</span><span>, </span><span class="string-literal">&quot;i&quot;</span><span>, </span><span class="string-literal">&quot;my&quot;</span><span>))
     .</span><span class="identifier">withPorterStemmer</span><span>
