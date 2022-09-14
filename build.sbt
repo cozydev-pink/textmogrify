@@ -46,6 +46,8 @@ lazy val lucene = project
       "co.fs2" %% "fs2-io" % fs2V,
       "org.apache.lucene" % "lucene-core" % luceneV,
       "org.apache.lucene" % "lucene-analysis-common" % luceneV,
+      "org.apache.lucene" % "lucene-memory" % luceneV,
+      "org.apache.lucene" % "lucene-queryparser" % luceneV,
       "org.typelevel" %% "munit-cats-effect" % munitCatsEffectV % Test,
     ),
   )
