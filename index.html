@@ -167,7 +167,7 @@
 </span><span class="keyword">val</span><span> </span><span class="identifier">normalizeMsgs</span><span>: </span><span class="type-name">Pipe</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Msg</span><span>, </span><span class="type-name">Doc</span><span>] = </span><span class="identifier">msgs</span><span> =&gt; {
   </span><span class="keyword">val</span><span> </span><span class="identifier">tokenizer</span><span> = </span><span class="type-name">AnalyzerBuilder</span><span>.</span><span class="identifier">english</span><span>
     .</span><span class="identifier">withLowerCasing</span><span>
-    .</span><span class="identifier">withStopWords</span><span>(</span><span class="type-name">Set</span><span>(</span><span class="string-literal">&quot;how&quot;</span><span>, </span><span class="string-literal">&quot;do&quot;</span><span>, </span><span class="string-literal">&quot;i&quot;</span><span>, </span><span class="string-literal">&quot;my&quot;</span><span>))
+    .</span><span class="identifier">withCustomStopWords</span><span>(</span><span class="type-name">Set</span><span>(</span><span class="string-literal">&quot;how&quot;</span><span>, </span><span class="string-literal">&quot;do&quot;</span><span>, </span><span class="string-literal">&quot;i&quot;</span><span>, </span><span class="string-literal">&quot;my&quot;</span><span>))
     .</span><span class="identifier">withPorterStemmer</span><span>
     .</span><span class="identifier">tokenizer</span><span>[</span><span class="type-name">IO</span><span>]
   </span><span class="type-name">Stream</span><span>.</span><span class="identifier">resource</span><span>(</span><span class="identifier">tokenizer</span><span>)
