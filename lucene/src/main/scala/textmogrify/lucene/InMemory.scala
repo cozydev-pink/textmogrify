@@ -17,15 +17,75 @@
 package textmogrify.lucene
 
 import cats.syntax.all._
-import cats.effect.{IO, IOApp, Resource}
+import cats.effect.{IO, IOApp, Resource, Sync}
 import fs2.{Stream, Pull, Chunk}
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.index.memory.MemoryIndex
 import org.apache.lucene.queryparser.classic.QueryParser
 
-object InMemory extends IOApp.Simple {
+sealed trait Indexable[A] {
+  def keyValues(a: A): List[(String, String)]
+}
+
+sealed trait InMemory[F[_], A] {
+  def search(s: Stream[F, A])(query: String): Stream[F, Float]
+}
+
+sealed abstract class InMemoryBuilder[F[_], A] private[lucene] (
+    defaultField: String,
+    analyzer: Resource[F, Analyzer],
+)(implicit F: Sync[F], idx: Indexable[A]) {
+
+  private def copy(
+      defaultField: String = defaultField,
+      analyzer: Resource[F, Analyzer] = analyzer,
+  ): InMemoryBuilder[F, A] =
+    new InMemoryBuilder[F, A](defaultField, analyzer) {}
+
+  def withAnalyzer(analyzerR: Resource[F, Analyzer]): InMemoryBuilder[F, A] =
+    copy(analyzer = analyzerR)
+
+  def withDefaultField(field: String): InMemoryBuilder[F, A] =
+    copy(defaultField = field)
+
+  def build: Resource[F, InMemory[F, A]] = {
+    val indexR = Resource.eval(F.delay(new MemoryIndex()))
+    (analyzer, indexR).mapN { case (analyzer, index) =>
+      new InMemory[F, A] {
+        def search(s: Stream[F, A])(query: String): Stream[F, Float] = {
+          val parser = new QueryParser(defaultField, analyzer)
+          def goChunk(c: Chunk[A]): Chunk[Float] =
+            c.map { d =>
+              idx.keyValues(d).foreach { case (k, v) => index.addField(k, v, analyzer) }
+              val score = index.search(parser.parse(query))
+              index.reset()
+              score
+            }
+          def goStream(s: Stream[F, A]): Pull[F, Float, Unit] =
+            s.pull.uncons.flatMap {
+              case Some((hd, tl)) => Pull.output(goChunk(hd)) >> goStream(tl)
+              case None => index.reset(); Pull.done
+            }
+          goStream(s).stream
+        }
+      }
+    }
+  }
+}
+object InMemoryBuilder {
+  def default[F[_], A: Indexable](fieldName: String)(implicit F: Sync[F]): InMemoryBuilder[F, A] =
+    new InMemoryBuilder[F, A](fieldName, AnalyzerBuilder.default.build) {}
+}
+
+object InMemoryApp extends IOApp.Simple {
 
   case class Doc(author: String, title: String)
+  object Doc {
+    implicit val indexableDoc = new Indexable[Doc] {
+      def keyValues(a: Doc): List[(String, String)] =
+        ("title", a.title) :: ("author", a.author) :: Nil
+    }
+  }
 
   val docStream = Stream[IO, Doc](
     Doc("Tales of James", "Readings about Salmons and other select Alaska fishing Manuals"),
@@ -33,32 +93,12 @@ object InMemory extends IOApp.Simple {
     Doc("james stuff", "salmon are great fish, learn cook em' in this manual"),
   )
 
-  val analyzerR = AnalyzerBuilder.english.withLowerCasing.build[IO]
-  val indexR = Resource.eval(IO(new MemoryIndex()))
+  val memory = InMemoryBuilder
+    .default[IO, Doc](fieldName = "title")
+    .withAnalyzer(AnalyzerBuilder.english.withLowerCasing.build)
+    .build
 
-  def searchPipe(analyzer: Analyzer, index: MemoryIndex)(
-      input: Stream[IO, Doc]
-  ): Pull[IO, Float, Unit] = {
-    val parser = new QueryParser("content", analyzer)
-    def goChunk(c: Chunk[Doc]): Chunk[Float] =
-      c.map { d =>
-        index.addField("content", d.title, analyzer)
-        index.addField("author", d.author, analyzer)
-        val score = index.search(parser.parse("+author:james +salmon~ +fish* manual~"))
-        index.reset()
-        score
-      }
-    def goStream(s: Stream[IO, Doc]): Pull[IO, Float, Unit] =
-      s.pull.uncons.flatMap {
-        case Some((hd, tl)) => Pull.output(goChunk(hd)) >> goStream(tl)
-        case None => index.reset(); Pull.done
-      }
-    goStream(input)
-  }
+  val query = "author:james AND salmon~"
 
-  val indexer = (analyzerR, indexR).parTupled.map { case (a, i) =>
-    searchPipe(a, i)(docStream).stream
-  }
-
-  val run = Stream.resource(indexer).flatten.compile.toList.flatMap(IO.println)
+  val run = memory.use(mem => mem.search(docStream)(query).evalMap(IO.println).compile.drain)
 }
