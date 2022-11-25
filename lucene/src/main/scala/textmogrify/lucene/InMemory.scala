@@ -123,7 +123,7 @@ object InMemoryApp extends IOApp.Simple {
 
   case class Doc(author: String, title: String)
   object Doc {
-    implicit val indexableDoc = new Indexable[Doc] {
+    implicit val indexableDoc: Indexable[Doc] = new Indexable[Doc] {
       def keyValues(a: Doc): List[(String, String)] =
         ("title", a.title) :: ("author", a.author) :: Nil
     }
