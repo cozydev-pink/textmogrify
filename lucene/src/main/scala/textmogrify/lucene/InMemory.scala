@@ -28,7 +28,12 @@ sealed trait Indexable[A] {
 }
 
 sealed trait InMemory[F[_], A] {
-  def search(s: Stream[F, A])(query: String): Stream[F, Float]
+  def score(query: String): Stream[F, A] => Stream[F, Float]
+  def filter(query: String, threshold: Float = 0.0f): Stream[F, A] => Stream[F, A]
+  def filterWithScore(
+      query: String,
+      threshold: Float = 0.0f,
+  ): Stream[F, A] => Stream[F, (A, Float)]
 }
 
 sealed abstract class InMemoryBuilder[F[_], A] private[lucene] (
@@ -52,7 +57,7 @@ sealed abstract class InMemoryBuilder[F[_], A] private[lucene] (
     val indexR = Resource.eval(F.delay(new MemoryIndex()))
     (analyzer, indexR).mapN { case (analyzer, index) =>
       new InMemory[F, A] {
-        def search(s: Stream[F, A])(query: String): Stream[F, Float] = {
+        def score(query: String): Stream[F, A] => Stream[F, Float] = in => {
           val parser = new QueryParser(defaultField, analyzer)
           def goChunk(c: Chunk[A]): Chunk[Float] =
             c.map { d =>
@@ -66,7 +71,44 @@ sealed abstract class InMemoryBuilder[F[_], A] private[lucene] (
               case Some((hd, tl)) => Pull.output(goChunk(hd)) >> goStream(tl)
               case None => index.reset(); Pull.done
             }
-          goStream(s).stream
+          goStream(in).stream
+        }
+        def filter(query: String, threshold: Float = 0.0f): Stream[F, A] => Stream[F, A] = in => {
+          val parser = new QueryParser(defaultField, analyzer)
+          def goChunk(c: Chunk[A]): Chunk[A] =
+            c.filter { d =>
+              idx.keyValues(d).foreach { case (k, v) => index.addField(k, v, analyzer) }
+              val score = index.search(parser.parse(query))
+              index.reset()
+              score > threshold
+            }
+          def goStream(s: Stream[F, A]): Pull[F, A, Unit] =
+            s.pull.uncons.flatMap {
+              case Some((hd, tl)) => Pull.output(goChunk(hd)) >> goStream(tl)
+              case None => index.reset(); Pull.done
+            }
+          goStream(in).stream
+        }
+        def filterWithScore(
+            query: String,
+            threshold: Float = 0.0f,
+        ): Stream[F, A] => Stream[F, (A, Float)] = in => {
+          val parser = new QueryParser(defaultField, analyzer)
+          def goChunk(c: Chunk[A]): Chunk[(A, Float)] =
+            c.mapFilter { d =>
+              idx.keyValues(d).foreach { case (k, v) => index.addField(k, v, analyzer) }
+              val score = index.search(parser.parse(query))
+              index.reset()
+              if (score > threshold)
+                Some((d, score))
+              else None
+            }
+          def goStream(s: Stream[F, A]): Pull[F, (A, Float), Unit] =
+            s.pull.uncons.flatMap {
+              case Some((hd, tl)) => Pull.output(goChunk(hd)) >> goStream(tl)
+              case None => index.reset(); Pull.done
+            }
+          goStream(in).stream
         }
       }
     }
@@ -100,5 +142,6 @@ object InMemoryApp extends IOApp.Simple {
 
   val query = "author:james AND salmon~"
 
-  val run = memory.use(mem => mem.search(docStream)(query).evalMap(IO.println).compile.drain)
+  val run =
+    memory.use(mem => mem.filterWithScore(query)(docStream).evalMap(IO.println).compile.drain)
 }
