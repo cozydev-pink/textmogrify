@@ -18,7 +18,7 @@ package textmogrify.lucene
 
 import cats.syntax.all._
 import cats.effect.{IO, IOApp, Resource, Sync}
-import fs2.{Stream, Pull, Chunk}
+import fs2.{Stream, Pipe, Pull, Chunk}
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.index.memory.MemoryIndex
 import org.apache.lucene.queryparser.classic.QueryParser
@@ -57,59 +57,51 @@ sealed abstract class InMemoryBuilder[F[_], A] private[lucene] (
     val indexR = Resource.eval(F.delay(new MemoryIndex()))
     (analyzer, indexR).mapN { case (analyzer, index) =>
       new InMemory[F, A] {
-        def score(query: String): Stream[F, A] => Stream[F, Float] = in => {
-          val parser = new QueryParser(defaultField, analyzer)
-          def goChunk(c: Chunk[A]): Chunk[Float] =
+        private[this] def reset() = index.reset()
+
+        private[this] def goStream[B](
+            s: Stream[F, A]
+        )(goChunk: Chunk[A] => Chunk[B]): Pull[F, B, Unit] =
+          s.pull.uncons.flatMap {
+            case Some((hd, tl)) => Pull.output(goChunk(hd)) >> goStream(tl)(goChunk)
+            case None => reset(); Pull.done
+          }
+        private[this] def indexAndScore(query: String)(d: A): Float = {
+          val parser = new QueryParser(defaultField, analyzer) // Not thread safe
+          idx.keyValues(d).foreach { case (k, v) => index.addField(k, v, analyzer) }
+          val score = index.search(parser.parse(query))
+          reset()
+          score
+        }
+        private[this] def fromGoChunk[B](goChunk: Chunk[A] => Chunk[B]): Pipe[F, A, B] =
+          in => goStream(in)(goChunk).stream
+
+        def score(query: String): Stream[F, A] => Stream[F, Float] =
+          fromGoChunk { c =>
             c.map { d =>
-              idx.keyValues(d).foreach { case (k, v) => index.addField(k, v, analyzer) }
-              val score = index.search(parser.parse(query))
-              index.reset()
-              score
+              indexAndScore(query)(d)
             }
-          def goStream(s: Stream[F, A]): Pull[F, Float, Unit] =
-            s.pull.uncons.flatMap {
-              case Some((hd, tl)) => Pull.output(goChunk(hd)) >> goStream(tl)
-              case None => index.reset(); Pull.done
-            }
-          goStream(in).stream
-        }
-        def filter(query: String, threshold: Float = 0.0f): Stream[F, A] => Stream[F, A] = in => {
-          val parser = new QueryParser(defaultField, analyzer)
-          def goChunk(c: Chunk[A]): Chunk[A] =
+          }
+
+        def filter(query: String, threshold: Float = 0.0f): Stream[F, A] => Stream[F, A] =
+          fromGoChunk { c =>
             c.filter { d =>
-              idx.keyValues(d).foreach { case (k, v) => index.addField(k, v, analyzer) }
-              val score = index.search(parser.parse(query))
-              index.reset()
-              score > threshold
+              indexAndScore(query)(d) > threshold
             }
-          def goStream(s: Stream[F, A]): Pull[F, A, Unit] =
-            s.pull.uncons.flatMap {
-              case Some((hd, tl)) => Pull.output(goChunk(hd)) >> goStream(tl)
-              case None => index.reset(); Pull.done
-            }
-          goStream(in).stream
-        }
+          }
+
         def filterWithScore(
             query: String,
             threshold: Float = 0.0f,
-        ): Stream[F, A] => Stream[F, (A, Float)] = in => {
-          val parser = new QueryParser(defaultField, analyzer)
-          def goChunk(c: Chunk[A]): Chunk[(A, Float)] =
+        ): Stream[F, A] => Stream[F, (A, Float)] =
+          fromGoChunk { c =>
             c.mapFilter { d =>
-              idx.keyValues(d).foreach { case (k, v) => index.addField(k, v, analyzer) }
-              val score = index.search(parser.parse(query))
-              index.reset()
+              val score = indexAndScore(query)(d)
               if (score > threshold)
                 Some((d, score))
               else None
             }
-          def goStream(s: Stream[F, A]): Pull[F, (A, Float), Unit] =
-            s.pull.uncons.flatMap {
-              case Some((hd, tl)) => Pull.output(goChunk(hd)) >> goStream(tl)
-              case None => index.reset(); Pull.done
-            }
-          goStream(in).stream
-        }
+          }
       }
     }
   }
