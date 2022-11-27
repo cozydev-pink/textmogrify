@@ -28,7 +28,7 @@ sealed trait Indexable[A] {
 }
 
 sealed trait InMemory[F[_], A] {
-  def score(query: String): Stream[F, A] => Stream[F, Float]
+  def score(query: String): Stream[F, A] => Stream[F, (A, Float)]
   def filter(query: String, threshold: Float = 0.0f): Stream[F, A] => Stream[F, A]
   def filterWithScore(
       query: String,
@@ -76,10 +76,10 @@ sealed abstract class InMemoryBuilder[F[_], A] private[lucene] (
         private[this] def fromGoChunk[B](goChunk: Chunk[A] => Chunk[B]): Pipe[F, A, B] =
           in => goStream(in)(goChunk).stream
 
-        def score(query: String): Stream[F, A] => Stream[F, Float] =
+        def score(query: String): Stream[F, A] => Stream[F, (A, Float)] =
           fromGoChunk { c =>
             c.map { d =>
-              indexAndScore(query)(d)
+              (d, indexAndScore(query)(d))
             }
           }
 
