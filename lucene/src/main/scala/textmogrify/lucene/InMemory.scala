@@ -23,7 +23,7 @@ import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.index.memory.MemoryIndex
 import org.apache.lucene.queryparser.classic.QueryParser
 
-sealed trait Indexable[A] {
+trait Indexable[A] {
   def keyValues(a: A): List[(String, String)]
 }
 
