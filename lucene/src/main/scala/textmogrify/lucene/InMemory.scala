@@ -134,6 +134,12 @@ object InMemoryApp extends IOApp.Simple {
 
   val query = "author:james AND salmon~"
 
-  val run =
-    memory.use(mem => mem.filterWithScore(query)(docStream).evalMap(IO.println).compile.drain)
+  val searchPipe: Pipe[IO, Doc, (Doc, Float)] = (in: Stream[IO, Doc]) =>
+    Stream.resource(memory).flatMap(mem => mem.filterWithScore(query)(in))
+
+  val run = docStream
+    .through(searchPipe)
+    .evalMap(IO.println)
+    .compile
+    .drain
 }
