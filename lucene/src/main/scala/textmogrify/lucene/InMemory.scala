@@ -27,70 +27,77 @@ trait Indexable[A] {
   def keyValues(a: A): List[(String, String)]
 }
 
-sealed trait InMemory[F[_], A] {
-  def score(query: String): Stream[F, A] => Stream[F, (A, Float)]
-  def filter(query: String, threshold: Float = 0.0f): Stream[F, A] => Stream[F, A]
-  def filterWithScore(
+sealed trait InMemory[F[_]] {
+  def score[A: Indexable](query: String): Stream[F, A] => Stream[F, (A, Float)]
+  def filter[A: Indexable](query: String, threshold: Float = 0.0f): Stream[F, A] => Stream[F, A]
+  def filterWithScore[A: Indexable](
       query: String,
       threshold: Float = 0.0f,
   ): Stream[F, A] => Stream[F, (A, Float)]
 }
 
-sealed abstract class InMemoryBuilder[F[_], A] private[lucene] (
+sealed abstract class InMemoryBuilder[F[_]] private[lucene] (
     defaultField: String,
     analyzer: Resource[F, Analyzer],
-)(implicit F: Sync[F], idx: Indexable[A]) {
+)(implicit F: Sync[F]) {
 
   private def copy(
       defaultField: String = defaultField,
       analyzer: Resource[F, Analyzer] = analyzer,
-  ): InMemoryBuilder[F, A] =
-    new InMemoryBuilder[F, A](defaultField, analyzer) {}
+  ): InMemoryBuilder[F] =
+    new InMemoryBuilder[F](defaultField, analyzer) {}
 
-  def withAnalyzer(analyzerR: Resource[F, Analyzer]): InMemoryBuilder[F, A] =
+  def withAnalyzer(analyzerR: Resource[F, Analyzer]): InMemoryBuilder[F] =
     copy(analyzer = analyzerR)
 
-  def withDefaultField(field: String): InMemoryBuilder[F, A] =
+  def withDefaultField(field: String): InMemoryBuilder[F] =
     copy(defaultField = field)
 
-  def build: Resource[F, InMemory[F, A]] = {
+  def build: Resource[F, InMemory[F]] = {
     val indexR = Resource.eval(F.delay(new MemoryIndex()))
     (analyzer, indexR).mapN { case (analyzer, index) =>
-      new InMemory[F, A] {
+      new InMemory[F] {
         private[this] def reset() = index.reset()
 
-        private[this] def goStream[B](
+        private[this] def goStream[A: Indexable, B](
             s: Stream[F, A]
         )(goChunk: Chunk[A] => Chunk[B]): Pull[F, B, Unit] =
           s.pull.uncons.flatMap {
             case Some((hd, tl)) => Pull.output(goChunk(hd)) >> goStream(tl)(goChunk)
             case None => reset(); Pull.done
           }
-        private[this] def indexAndScore(query: String)(d: A): Float = {
+        private[this] def indexAndScore[A](query: String)(d: A)(implicit
+            idx: Indexable[A]
+        ): Float = {
           val parser = new QueryParser(defaultField, analyzer) // Not thread safe
           idx.keyValues(d).foreach { case (k, v) => index.addField(k, v, analyzer) }
           val score = index.search(parser.parse(query))
           reset()
           score
         }
-        private[this] def fromGoChunk[B](goChunk: Chunk[A] => Chunk[B]): Pipe[F, A, B] =
+        private[this] def fromGoChunk[A: Indexable, B](
+            goChunk: Chunk[A] => Chunk[B]
+        ): Pipe[F, A, B] =
           in => goStream(in)(goChunk).stream
 
-        def score(query: String): Stream[F, A] => Stream[F, (A, Float)] =
+        def score[A: Indexable](query: String): Stream[F, A] => Stream[F, (A, Float)] =
           fromGoChunk { c =>
             c.map { d =>
               (d, indexAndScore(query)(d))
             }
           }
 
-        def filter(query: String, threshold: Float = 0.0f): Stream[F, A] => Stream[F, A] =
+        def filter[A: Indexable](
+            query: String,
+            threshold: Float = 0.0f,
+        ): Stream[F, A] => Stream[F, A] =
           fromGoChunk { c =>
             c.filter { d =>
               indexAndScore(query)(d) > threshold
             }
           }
 
-        def filterWithScore(
+        def filterWithScore[A: Indexable](
             query: String,
             threshold: Float = 0.0f,
         ): Stream[F, A] => Stream[F, (A, Float)] =
@@ -107,8 +114,8 @@ sealed abstract class InMemoryBuilder[F[_], A] private[lucene] (
   }
 }
 object InMemoryBuilder {
-  def default[F[_], A: Indexable](fieldName: String)(implicit F: Sync[F]): InMemoryBuilder[F, A] =
-    new InMemoryBuilder[F, A](fieldName, AnalyzerBuilder.default.build) {}
+  def default[F[_]](fieldName: String)(implicit F: Sync[F]): InMemoryBuilder[F] =
+    new InMemoryBuilder[F](fieldName, AnalyzerBuilder.default.build) {}
 }
 
 object InMemoryApp extends IOApp.Simple {
@@ -128,14 +135,14 @@ object InMemoryApp extends IOApp.Simple {
   )
 
   val memory = InMemoryBuilder
-    .default[IO, Doc](fieldName = "title")
+    .default[IO](fieldName = "title")
     .withAnalyzer(AnalyzerBuilder.english.withLowerCasing.build)
     .build
 
   val query = "author:james AND salmon~"
 
   val searchPipe: Pipe[IO, Doc, (Doc, Float)] = (in: Stream[IO, Doc]) =>
-    Stream.resource(memory).flatMap(mem => mem.filterWithScore(query)(in))
+    Stream.resource(memory).flatMap(mem => in.through(mem.filterWithScore[Doc](query)))
 
   val run = docStream
     .through(searchPipe)
