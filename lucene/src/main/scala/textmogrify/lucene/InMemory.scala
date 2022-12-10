@@ -112,6 +112,8 @@ sealed abstract class InMemoryBuilder[F[_]] private[lucene] (
       }
     }
   }
+  def stream: Stream[F, InMemory[F]] =
+    Stream.resource(build)
 }
 object InMemoryBuilder {
   def default[F[_]](fieldName: String)(implicit F: Sync[F]): InMemoryBuilder[F] =
@@ -137,12 +139,12 @@ object InMemoryApp extends IOApp.Simple {
   val memory = InMemoryBuilder
     .default[IO](fieldName = "title")
     .withAnalyzer(AnalyzerBuilder.english.withLowerCasing.build)
-    .build
+    .stream
 
   val query = "author:james AND salmon~"
 
   val searchPipe: Pipe[IO, Doc, (Doc, Float)] = (in: Stream[IO, Doc]) =>
-    Stream.resource(memory).flatMap(mem => in.through(mem.filterWithScore[Doc](query)))
+    memory.flatMap(mem => in.through(mem.filterWithScore[Doc](query)))
 
   val run = docStream
     .through(searchPipe)
