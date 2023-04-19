@@ -46,3 +46,32 @@ abstract class Builder(config: Config) {
   def tokenizer[F[_]](implicit F: Sync[F]): Resource[F, String => F[Vector[String]]]
 
 }
+object Builder {
+  def whitespace: WhitespaceBuilder =
+    new WhitespaceBuilder(Config.empty)
+}
+
+final class WhitespaceBuilder(config: Config) extends Builder(config) {
+  self =>
+  type Bldr = WhitespaceBuilder
+
+  private def copy(
+      newConfig: Config
+  ): WhitespaceBuilder =
+    new WhitespaceBuilder(newConfig)
+
+  def withConfig(newConfig: Config): WhitespaceBuilder = copy(newConfig = newConfig)
+
+  def tokenizer[F[_]](implicit F: Sync[F]): Resource[F, String => F[Vector[String]]] = {
+    def splitter(str: String): Vector[String] = {
+      val s = if (config.lowerCase) str.toLowerCase() else str
+      val tokens = s.split(" ")
+      if (config.customStopWords.isEmpty) tokens.toVector
+      else {
+        tokens.view.filterNot(t => config.customStopWords.contains(t)).toVector
+      }
+    }
+    Resource.pure(str => F.pure(splitter(str)))
+  }
+
+}
