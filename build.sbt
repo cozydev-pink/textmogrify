@@ -47,6 +47,7 @@ lazy val core = project
       "co.fs2" %% "fs2-io" % fs2V,
       "org.typelevel" %% "munit-cats-effect" % munitCatsEffectV % Test,
     ),
+    tlJdkRelease := Some(8),
   )
 
 lazy val lucene = project
@@ -63,6 +64,7 @@ lazy val lucene = project
       "org.apache.lucene" % "lucene-analysis-common" % luceneV,
       "org.typelevel" %% "munit-cats-effect" % munitCatsEffectV % Test,
     ),
+    tlJdkRelease := Some(11), // Lucene needs 11+
   )
 
 lazy val example = project
