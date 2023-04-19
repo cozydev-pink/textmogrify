@@ -16,6 +16,7 @@
 
 package textmogrify.lucene
 
+import textmogrify.Config
 import scala.jdk.CollectionConverters._
 
 import cats.effect.kernel.{Resource, Sync}
@@ -44,28 +45,6 @@ import org.apache.lucene.analysis.nl.DutchAnalyzer.{getDefaultStopSet => getDutc
 import org.apache.lucene.analysis.pt.PortugueseAnalyzer.{getDefaultStopSet => getPortugueseStopSet}
 import org.apache.lucene.analysis.br.BrazilianAnalyzer.{
   getDefaultStopSet => getBrazilianPortugueseStopSet
-}
-
-final case class Config(
-    lowerCase: Boolean,
-    foldASCII: Boolean,
-    defaultStopWords: Boolean,
-    customStopWords: Set[String],
-) {
-  def withLowerCasing: Config =
-    copy(lowerCase = true)
-
-  def withASCIIFolding: Config =
-    copy(foldASCII = true)
-
-  def withDefaultStopWords: Config =
-    copy(defaultStopWords = true)
-
-  def withCustomStopWords(words: Set[String]): Config =
-    copy(customStopWords = words)
-}
-object Config {
-  def empty: Config = Config(false, false, false, Set.empty)
 }
 
 /** Build an Analyzer or tokenizer function */

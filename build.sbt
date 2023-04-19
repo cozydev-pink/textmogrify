@@ -33,10 +33,24 @@ val luceneV = "9.5.0"
 val munitV = "1.0.0-M6"
 val munitCatsEffectV = "2.0.0-M3"
 
-lazy val root = tlCrossRootProject.aggregate(lucene, example, unidocs, benchmarks)
+lazy val root = tlCrossRootProject.aggregate(core, lucene, example, unidocs, benchmarks)
+
+lazy val core = project
+  .in(file("core"))
+  .settings(
+    name := "textmogrify-core",
+    libraryDependencies ++= Seq(
+      "org.typelevel" %% "cats-core" % catsV,
+      "org.typelevel" %% "cats-effect" % catsEffectV,
+      "co.fs2" %% "fs2-core" % fs2V,
+      "co.fs2" %% "fs2-io" % fs2V,
+      "org.typelevel" %% "munit-cats-effect" % munitCatsEffectV % Test,
+    ),
+  )
 
 lazy val lucene = project
   .in(file("lucene"))
+  .dependsOn(core)
   .settings(
     name := "textmogrify-lucene",
     libraryDependencies ++= Seq(
