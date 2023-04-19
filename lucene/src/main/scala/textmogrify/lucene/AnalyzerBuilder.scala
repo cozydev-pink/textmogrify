@@ -17,7 +17,7 @@
 package textmogrify.lucene
 
 import textmogrify.{Builder, Config}
-import scala.jdk.CollectionConverters._
+import textmogrify.lucene.utils.CharArraySetUtils
 
 import cats.effect.kernel.{Resource, Sync}
 import org.apache.lucene.analysis.Analyzer.TokenStreamComponents
@@ -52,7 +52,7 @@ sealed abstract class AnalyzerBuilder private[lucene] (config: Config) extends B
   type Bldr <: AnalyzerBuilder
 
   private[lucene] def toSet(cs: CharArraySet): Set[String] =
-    cs.asScala.map(ca => String.valueOf(ca.asInstanceOf[Array[Char]])).toSet
+    CharArraySetUtils.toSet(cs)
 
   /** A convenience value for debugging or investigating, to inspect the Lucene default stop words.
     * This set is immutable, and unused; it is the underlying Lucene `CharArraySet` that we use to
