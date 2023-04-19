@@ -48,8 +48,7 @@ import org.apache.lucene.analysis.br.BrazilianAnalyzer.{
 }
 
 /** Build an Analyzer or tokenizer function */
-sealed abstract class AnalyzerBuilder private[lucene] (config: Config)
-    extends Builder(config: Config) {
+sealed abstract class AnalyzerBuilder private[lucene] (config: Config) extends Builder(config) {
   type Bldr <: AnalyzerBuilder
 
   private[lucene] def toSet(cs: CharArraySet): Set[String] =
