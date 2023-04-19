@@ -16,7 +16,7 @@
 
 package textmogrify.lucene
 
-import textmogrify.Config
+import textmogrify.{Builder, Config}
 import scala.jdk.CollectionConverters._
 
 import cats.effect.kernel.{Resource, Sync}
@@ -48,8 +48,9 @@ import org.apache.lucene.analysis.br.BrazilianAnalyzer.{
 }
 
 /** Build an Analyzer or tokenizer function */
-sealed abstract class AnalyzerBuilder private[lucene] (config: Config) {
-  type Builder <: AnalyzerBuilder
+sealed abstract class AnalyzerBuilder private[lucene] (config: Config)
+    extends Builder(config: Config) {
+  type Bldr <: AnalyzerBuilder
 
   private[lucene] def toSet(cs: CharArraySet): Set[String] =
     cs.asScala.map(ca => String.valueOf(ca.asInstanceOf[Array[Char]])).toSet
@@ -59,26 +60,6 @@ sealed abstract class AnalyzerBuilder private[lucene] (config: Config) {
     * build the default StopFilter
     */
   def defaultStopWords: Set[String]
-
-  def withConfig(config: Config): Builder
-
-  /** Adds a lowercasing stage to the analyzer pipeline */
-  def withLowerCasing: Builder =
-    withConfig(config.withLowerCasing)
-
-  /** Adds an ASCII folding stage to the analyzer pipeline
-    * ASCII folding converts alphanumeric and symbolic Unicode characters into
-    * their ASCII equivalents, if one exists.
-    */
-  def withASCIIFolding: Builder =
-    withConfig(config.withASCIIFolding)
-
-  def withDefaultStopWords: Builder =
-    withConfig(config.withDefaultStopWords)
-
-  /** Adds a stop filter stage to analyzer pipeline for non-empty sets. */
-  def withCustomStopWords(words: Set[String]): Builder =
-    withConfig(config.withCustomStopWords(words))
 
   /** Build the Analyzer wrapped inside a Resource. */
   def build[F[_]](implicit F: Sync[F]): Resource[F, Analyzer]
@@ -130,7 +111,7 @@ object AnalyzerBuilder {
 
 final class DefaultAnalyzerBuilder private[lucene] (config: Config)
     extends AnalyzerBuilder(config) { self =>
-  type Builder = DefaultAnalyzerBuilder
+  type Bldr = DefaultAnalyzerBuilder
 
   val defaultStopWords: Set[String] = Set.empty
 
@@ -169,7 +150,7 @@ final class EnglishAnalyzerBuilder private[lucene] (
     config: Config,
     stemmer: Boolean,
 ) extends AnalyzerBuilder(config) { self =>
-  type Builder = EnglishAnalyzerBuilder
+  type Bldr = EnglishAnalyzerBuilder
 
   private def copy(
       newConfig: Config,
@@ -201,7 +182,7 @@ final class FrenchAnalyzerBuilder private[lucene] (
     config: Config,
     stemmer: Boolean,
 ) extends AnalyzerBuilder(config) { self =>
-  type Builder = FrenchAnalyzerBuilder
+  type Bldr = FrenchAnalyzerBuilder
 
   private def copy(
       newConfig: Config,
@@ -232,7 +213,7 @@ final class SpanishAnalyzerBuilder private[lucene] (
     config: Config,
     stemmer: Boolean,
 ) extends AnalyzerBuilder(config) { self =>
-  type Builder = SpanishAnalyzerBuilder
+  type Bldr = SpanishAnalyzerBuilder
 
   private def copy(
       newConfig: Config,
@@ -263,7 +244,7 @@ final class ItalianAnalyzerBuilder private[lucene] (
     config: Config,
     stemmer: Boolean,
 ) extends AnalyzerBuilder(config) { self =>
-  type Builder = ItalianAnalyzerBuilder
+  type Bldr = ItalianAnalyzerBuilder
 
   private def copy(
       newConfig: Config,
@@ -294,7 +275,7 @@ final class GermanAnalyzerBuilder private[lucene] (
     config: Config,
     stemmer: Boolean,
 ) extends AnalyzerBuilder(config) { self =>
-  type Builder = GermanAnalyzerBuilder
+  type Bldr = GermanAnalyzerBuilder
 
   private def copy(
       newConfig: Config,
@@ -325,7 +306,7 @@ final class DutchAnalyzerBuilder private[lucene] (
     config: Config,
     stemmer: Boolean,
 ) extends AnalyzerBuilder(config) { self =>
-  type Builder = DutchAnalyzerBuilder
+  type Bldr = DutchAnalyzerBuilder
 
   private def copy(
       newConfig: Config,
@@ -358,7 +339,7 @@ final class PortugueseAnalyzerBuilder private[lucene] (
     config: Config,
     stemmer: Boolean,
 ) extends AnalyzerBuilder(config) { self =>
-  type Builder = PortugueseAnalyzerBuilder
+  type Bldr = PortugueseAnalyzerBuilder
 
   private def copy(
       newConfig: Config,
@@ -390,7 +371,7 @@ final class BrazilianPortugueseAnalyzerBuilder private[lucene] (
     config: Config,
     stemmer: Boolean,
 ) extends AnalyzerBuilder(config) { self =>
-  type Builder = BrazilianPortugueseAnalyzerBuilder
+  type Bldr = BrazilianPortugueseAnalyzerBuilder
 
   private def copy(
       newConfig: Config,
