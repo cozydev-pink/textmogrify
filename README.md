@@ -9,5 +9,5 @@ You can check out the microsite for some docs and examples:
 https://valencik.github.io/textmogrify
 
 ```scala
-libraryDependencies += "io.pig" %% "textmogrify" % "0.0.4"
+libraryDependencies += "io.pig" %% "textmogrify" % "0.0.6"
 ```

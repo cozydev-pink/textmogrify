@@ -23,16 +23,15 @@ ThisBuild / tlCiReleaseBranches := Seq("main")
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("11"))
 
 val Scala212 = "2.12.17"
-val Scala213 = "2.13.10"
+val Scala213 = "2.13.12"
 ThisBuild / crossScalaVersions := Seq(Scala212, Scala213, "3.2.2")
 ThisBuild / scalaVersion := Scala213 // the default Scala
 
-val catsV = "2.9.0"
-val catsEffectV = "3.4.9"
-val fs2V = "3.6.1"
-val luceneV = "9.5.0"
-val munitV = "1.0.0-M6"
-val munitCatsEffectV = "2.0.0-M3"
+val catsV = "2.10.0"
+val catsEffectV = "3.5.3"
+val fs2V = "3.9.4"
+val luceneV = "9.9.2"
+val munitCatsEffectV = "2.0.0-M4"
 
 lazy val root = tlCrossRootProject.aggregate(core, lucene, example, unidocs, benchmarks)
 
@@ -58,6 +57,7 @@ lazy val lucene = project
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core" % catsV,
       "org.typelevel" %% "cats-effect" % catsEffectV,
+      "org.typelevel" %% "cats-effect-kernel" % catsEffectV,
       "co.fs2" %% "fs2-core" % fs2V,
       "co.fs2" %% "fs2-io" % fs2V,
       "org.apache.lucene" % "lucene-core" % luceneV,
@@ -91,11 +91,9 @@ lazy val docs = project
           appendLinks = Seq(
             ThemeNavigationSection(
               "Related Projects",
-              NonEmptyList.of(
-                TextLink.external("https://lucene.apache.org/", "lucene"),
-                TextLink.external("https://typelevel.org/cats-effect/", "cats-effect"),
-                TextLink.external("https://fs2.io/", "fs2"),
-              ),
+              TextLink.external("https://lucene.apache.org/", "lucene"),
+              TextLink.external("https://typelevel.org/cats-effect/", "cats-effect"),
+              TextLink.external("https://fs2.io/", "fs2"),
             )
           )
         )

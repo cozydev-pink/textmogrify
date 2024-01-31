@@ -67,9 +67,9 @@ sealed abstract case class AnalyzerPipe[F[_]](readerF: Reader => Resource[F, Tok
       }
       if (iter < tokenN)
         // we finished early, no tokens left, final chunk
-        Pull.output(Chunk.indexedSeq(arr)).as(None)
+        Pull.output(Chunk.from(arr)).as(None)
       else
-        Pull.output(Chunk.indexedSeq(arr)).as(Some(tk))
+        Pull.output(Chunk.from(arr)).as(Some(tk))
     }
 
     def go(tokens: Stream[F, TokenGetter]): Pull[F, String, Unit] =
