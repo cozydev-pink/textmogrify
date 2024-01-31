@@ -16,11 +16,13 @@
 
 package textmogrify.lucene.utils
 
+import scala.annotation.nowarn
 import scala.collection.JavaConverters._
 import org.apache.lucene.analysis.CharArraySet
 
 object CharArraySetUtils {
 
+  @nowarn("cat=deprecation")
   def toSet(cs: CharArraySet): Set[String] =
     cs.asScala.map(ca => String.valueOf(ca.asInstanceOf[Array[Char]])).toSet
 }
