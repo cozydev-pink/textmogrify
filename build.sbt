@@ -74,11 +74,9 @@ lazy val docs = project
           appendLinks = Seq(
             ThemeNavigationSection(
               "Related Projects",
-              NonEmptyList.of(
-                TextLink.external("https://lucene.apache.org/", "lucene"),
-                TextLink.external("https://typelevel.org/cats-effect/", "cats-effect"),
-                TextLink.external("https://fs2.io/", "fs2"),
-              ),
+              TextLink.external("https://lucene.apache.org/", "lucene"),
+              TextLink.external("https://typelevel.org/cats-effect/", "cats-effect"),
+              TextLink.external("https://fs2.io/", "fs2"),
             )
           )
         )
