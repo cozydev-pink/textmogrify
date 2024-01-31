@@ -35,7 +35,7 @@ object Tokenizer {
       F.delay {
         val ts = analyzer.tokenStream("textmogrify-field", new StringReader(s))
         val termAtt = ts.addAttribute(classOf[CharTermAttribute])
-        val arr = new ArrayBuffer[String].empty
+        val arr = new ArrayBuffer[String]
         try {
           ts.reset()
           while (ts.incrementToken())

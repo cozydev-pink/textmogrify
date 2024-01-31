@@ -22,8 +22,9 @@ ThisBuild / tlCiReleaseBranches := Seq("main")
 // use JDK 11
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("11"))
 
+val Scala212 = "2.12.17"
 val Scala213 = "2.13.12"
-ThisBuild / crossScalaVersions := Seq(Scala213, "3.3.1")
+ThisBuild / crossScalaVersions := Seq(Scala212, Scala213, "3.3.1")
 ThisBuild / scalaVersion := Scala213 // the default Scala
 
 val catsV = "2.10.0"
@@ -32,10 +33,25 @@ val fs2V = "3.9.4"
 val luceneV = "9.9.2"
 val munitCatsEffectV = "2.0.0-M4"
 
-lazy val root = tlCrossRootProject.aggregate(lucene, example, unidocs, benchmarks)
+lazy val root = tlCrossRootProject.aggregate(core, lucene, example, unidocs, benchmarks)
+
+lazy val core = project
+  .in(file("core"))
+  .settings(
+    name := "textmogrify-core",
+    libraryDependencies ++= Seq(
+      "org.typelevel" %% "cats-core" % catsV,
+      "org.typelevel" %% "cats-effect" % catsEffectV,
+      "co.fs2" %% "fs2-core" % fs2V,
+      "co.fs2" %% "fs2-io" % fs2V,
+      "org.typelevel" %% "munit-cats-effect" % munitCatsEffectV % Test,
+    ),
+    tlJdkRelease := Some(8),
+  )
 
 lazy val lucene = project
   .in(file("lucene"))
+  .dependsOn(core)
   .settings(
     name := "textmogrify-lucene",
     libraryDependencies ++= Seq(
@@ -48,6 +64,7 @@ lazy val lucene = project
       "org.apache.lucene" % "lucene-analysis-common" % luceneV,
       "org.typelevel" %% "munit-cats-effect" % munitCatsEffectV % Test,
     ),
+    tlJdkRelease := Some(11), // Lucene needs 11+
   )
 
 lazy val example = project
