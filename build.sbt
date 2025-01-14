@@ -64,7 +64,7 @@ lazy val docs = project
   .dependsOn(lucene)
   .settings(
     tlSiteApiPackage := Some("textmogrify"),
-    tlSiteHelium := {
+    tlSiteHelium :=
       tlSiteHelium.value.site.darkMode.disabled.site
         .topNavigationBar(
           homeLink = IconLink.external("https://github.com/valencik/textmogrify", HeliumIcon.home)
@@ -79,8 +79,7 @@ lazy val docs = project
               TextLink.external("https://fs2.io/", "fs2"),
             )
           )
-        )
-    },
+        ),
   )
 
 lazy val unidocs = project
