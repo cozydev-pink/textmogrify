@@ -28,7 +28,7 @@ ThisBuild / scalaVersion := Scala213 // the default Scala
 val catsV = "2.13.0"
 val catsEffectV = "3.5.7"
 val fs2V = "3.12.2"
-val luceneV = "9.12.1"
+val luceneV = "9.12.3"
 val munitCatsEffectV = "2.0.0"
 
 lazy val root = tlCrossRootProject.aggregate(lucene, example, unidocs, benchmarks)
