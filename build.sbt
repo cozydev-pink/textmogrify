@@ -22,13 +22,13 @@ ThisBuild / tlSitePublishBranch := Some("main")
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("11"))
 
 val Scala213 = "2.13.16"
-ThisBuild / crossScalaVersions := Seq(Scala213, "3.3.5")
+ThisBuild / crossScalaVersions := Seq(Scala213, "3.3.7")
 ThisBuild / scalaVersion := Scala213 // the default Scala
 
 val catsV = "2.13.0"
-val catsEffectV = "3.5.7"
-val fs2V = "3.11.0"
-val luceneV = "9.12.1"
+val catsEffectV = "3.6.3"
+val fs2V = "3.12.2"
+val luceneV = "9.12.3"
 val munitCatsEffectV = "2.1.0"
 
 lazy val root = tlCrossRootProject.aggregate(lucene, example, unidocs, benchmarks)
