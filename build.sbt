@@ -1,5 +1,3 @@
-import xerial.sbt.Sonatype.sonatypeCentralHost
-
 // https://typelevel.org/sbt-typelevel/faq.html#what-is-a-base-version-anyway
 ThisBuild / tlBaseVersion := "0.0" // your current series x.y
 
@@ -12,23 +10,20 @@ ThisBuild / developers := List(
   tlGitHubDev("valencik", "Andrew Valencik")
 )
 
-// use Sonatype Central
-ThisBuild / sonatypeCredentialHost := sonatypeCentralHost
-
 // publish website from this branch
 ThisBuild / tlSitePublishBranch := Some("main")
 
-// use JDK 11
-ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("11"))
+// use JDK 21
+ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("21"))
 
-val Scala213 = "2.13.16"
+val Scala213 = "2.13.18"
 ThisBuild / crossScalaVersions := Seq(Scala213, "3.3.7")
 ThisBuild / scalaVersion := Scala213 // the default Scala
 
 val catsV = "2.13.0"
 val catsEffectV = "3.6.3"
 val fs2V = "3.12.2"
-val luceneV = "9.12.3"
+val luceneV = "10.4.0"
 val munitCatsEffectV = "2.1.0"
 
 lazy val root = tlCrossRootProject.aggregate(lucene, example, unidocs, benchmarks)

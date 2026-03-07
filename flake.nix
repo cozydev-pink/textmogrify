@@ -10,18 +10,15 @@
       let
         pkgs = import nixpkgs {
           inherit system;
-          overlays = [ typelevel-nix.overlay ];
+          overlays = [ typelevel-nix.overlays.default ];
         };
-      in
-      {
+      in {
         devShell = pkgs.devshell.mkShell {
           imports = [ typelevel-nix.typelevelShell ];
           name = "textmogrify-shell";
           typelevelShell = {
-            jdk.package = pkgs.jdk11;
-            nodejs.enable = true;
+            jdk.package = pkgs.jdk21;
           };
         };
-      }
-    );
+      });
 }
