@@ -1,5 +1,3 @@
-import xerial.sbt.Sonatype.sonatypeCentralHost
-
 // https://typelevel.org/sbt-typelevel/faq.html#what-is-a-base-version-anyway
 ThisBuild / tlBaseVersion := "0.0" // your current series x.y
 
@@ -12,16 +10,13 @@ ThisBuild / developers := List(
   tlGitHubDev("valencik", "Andrew Valencik")
 )
 
-// use Sonatype Central
-ThisBuild / sonatypeCredentialHost := sonatypeCentralHost
-
 // publish website from this branch
 ThisBuild / tlSitePublishBranch := Some("main")
 
 // use JDK 11
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("11"))
 
-val Scala213 = "2.13.16"
+val Scala213 = "2.13.18"
 ThisBuild / crossScalaVersions := Seq(Scala213, "3.3.7")
 ThisBuild / scalaVersion := Scala213 // the default Scala
 
