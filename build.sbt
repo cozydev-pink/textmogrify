@@ -13,8 +13,8 @@ ThisBuild / developers := List(
 // publish website from this branch
 ThisBuild / tlSitePublishBranch := Some("main")
 
-// use JDK 11
-ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("11"))
+// use JDK 21
+ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("21"))
 
 val Scala213 = "2.13.18"
 ThisBuild / crossScalaVersions := Seq(Scala213, "3.3.7")
